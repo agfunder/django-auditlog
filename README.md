@@ -9,6 +9,7 @@ This fork adds some key improvements we needed to completely track changes in ou
 - improving admin view
 - tracking additional parameters in additional_data
 
+
 ## Requirements
 
 After reviewing packages simplehistory, reversion, and others, we decided to base our work on django-auditlog for these reasons:
