@@ -205,7 +205,7 @@ class AdditionalDataModelTest(TestCase):
         obj_wo_additional_data = SimpleModel.objects.create(text='No additional '
                                                                  'data')
         obj_log_entry = obj_wo_additional_data.history.get()
-        self.assertIsTrue(obj_log_entry.additional_data == {})
+        self.assertTrue(obj_log_entry.additional_data == {})
 
     def test_model_with_additional_data(self):
         related_model = SimpleModel.objects.create(text='Log my reference')
