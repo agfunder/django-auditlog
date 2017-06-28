@@ -5,6 +5,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Model, NOT_PROVIDED, DateTimeField
 from django.utils import timezone
 from django.utils.encoding import smart_text
+from django.db.models.fields.related import ManyToManyField
 
 
 def track_field(field):
@@ -83,6 +84,42 @@ def get_field_value(obj, field):
     value_string = smart_text(value)
 
     return (value,value_string)
+
+
+# for use with django-auditlog conflict()
+def model_instance_diff_m2m_post_vs_saved(request, target, saved):
+    cls=target.__class__
+    diffs={}
+    for f in target._meta._get_fields():
+        if type(f) is ManyToManyField:
+
+            fn=f.name
+
+            # TODO: what if fks are UUIDs or other type?
+            target_idlist=map(int,request.POST.getlist(fn))
+            target_idlist.sort(key=lambda x: int(x))
+            target_list=f.related_model.objects.filter(pk__in=target_idlist)
+
+            target_strlist=[str(x) for x in target_list]
+
+            saved_list=getattr(saved,fn).all()
+            saved_idlist=[x.id for x in saved_list]
+            saved_idlist.sort()
+            saved_strlist=[str(x) for x in saved_list]
+            saved_strlist.sort()
+
+            ids_added=[val for val in target_idlist if val not in saved_idlist]
+            ids_removed=[val for val in saved_idlist if val not in target_idlist]
+
+            str_added=[val for val in target_strlist if val not in saved_strlist]
+            str_removed=[val for val in saved_strlist if val not in target_strlist]
+
+            # dont add diff if there is no change
+            if saved_idlist!=target_idlist:
+                diffs[fn]={ 'ids':{'try':target_idlist, 'exist':saved_idlist, 'try_add':ids_added, 'try_rmv':ids_removed }, 
+                    'str':{'try':target_strlist, 'exist':saved_strlist, 'try_add':str_added, 'try_rmv':str_removed} }
+
+    return diffs
 
 
 def model_instance_diff(old, new):

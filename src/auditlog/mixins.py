@@ -8,6 +8,7 @@ try:
     from django.urls.exceptions import NoReverseMatch
 except ImportError:
     from django.core.urlresolvers import NoReverseMatch
+from auditlog.models import LogEntry
 
 MAX = 75
 
@@ -18,6 +19,26 @@ def chop(s,length):
     if len(s)<=length:
         return s
     return s[:length]+'...'
+
+
+def tableizer(dic):
+    ht='<table border=0 cellspacing=0 cellpadding=0>'
+    for k in dic.keys():
+        v=dic[k]
+        ht+='<tr>'
+        ht+='<td width=100 style="background-color:#ddd">%s</td>' % str(k)
+        if type(v) is dict:
+            ht+='<td>%s</td>' % tableizer(v)
+        elif type(v) is list:
+            ht+='<td>'
+            for el in v:
+                ht+=str(el)+'<br>\n'
+            ht+='</td>'
+        else:
+            ht+='<td>%s</td>' % str(v)
+        ht+='</tr>'
+    ht+='</table>'
+    return ht
 
 
 class LogEntryAdminMixin(object):
@@ -96,10 +117,43 @@ class LogEntryAdminMixin(object):
 
     def msg(self, obj):
         changes = json.loads(obj.changes)
-        msg = '<table width="100%"><tr><th>#</th><th width="15%">Field</th><th width="40%">From</th><th width="40%">To</th></tr>'
+
+        msg='<table width="100%"><tr><th>#</th><th width="15%">Field</th>'
+        if obj.action==LogEntry.Action.CONFLICT:
+            msg += '<th width="40%">Existing</th><th width="40%">Failed Conflicting Attempt</th></tr>'
+        else:
+            msg += '<th width="40%">From</th><th width="40%">To</th></tr>'
+
         for i, field in enumerate(sorted(changes), 1):
             r=0
-            value = [i, field] + (['***', '***'] if field == 'password' else changes[field])
+            vfrom=changes[field][0]
+            vto=changes[field][1]
+            if type(vfrom)==list and type(vto)==list:
+                vfrom.sort()
+                vto.sort()
+                vfrom_uniq=[val for val in vfrom if val not in vto]
+                vto_uniq=[val for val in vto if val not in vfrom]
+
+                vfrom_strlist=[]
+                for vf in vfrom:
+                    if vf in vfrom_uniq:
+                        col='blue'
+                    else:
+                        col='#aaa'
+                    vfrom_strlist.append('<span style="color:%s">' % col +vf+'</span>')
+
+                vto_strlist=[]
+                for vf in vto:
+                    if vf in vto_uniq:
+                        col='purple'
+                    else:
+                        col='#aaa'
+                    vto_strlist.append('<span style="color:%s">' % col+vf+'</span>')
+
+                vfrom="<br>".join(vfrom_strlist)
+                vto="<br>".join(vto_strlist)
+                
+            value = [i, field] + (['***', '***'] if field == 'password' else [vfrom,vto])
             rc="row2" if r%2 else "row1"
             args = (rc,) + tuple(value)
             msg += '<tr class="%s"><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>' %  args
@@ -108,3 +162,10 @@ class LogEntryAdminMixin(object):
         return msg
     msg.allow_tags = True
     msg.short_description = 'Changes'
+
+
+    def additional_data_w(self, obj):
+        return tableizer(obj.additional_data)
+    additional_data_w.allow_tags = True
+    additional_data_w.short_description = 'Additional Data'
+        
