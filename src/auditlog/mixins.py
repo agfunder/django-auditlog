@@ -85,7 +85,7 @@ class LogEntryAdminMixin(object):
         changes = json.loads(obj.changes)
 
     # single-field changes, display data
-        if len(changes.keys())==1:
+        if len(changes.keys())<=6:
             html='<span style="font-size:0.8em; font-weight:900;">%s</span><br><span style="color:red">%s</span> &rarr;  <span style="color:darkgreen">%s</span>'
             s=''
             for key in changes.keys():
@@ -104,6 +104,7 @@ class LogEntryAdminMixin(object):
 
                 MAX_LIST_STR_LEN=250
                 s += format_html(html % (key ,  chop(str_0,MAX_LIST_STR_LEN).replace("\n","<br>"),  chop(str_1,MAX_LIST_STR_LEN).replace("\n","<br>") ) )
+                s += '<br>'
             return s
 
 	# multi-field changes, list fields
