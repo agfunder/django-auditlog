@@ -49,10 +49,14 @@ class LogEntryAdminMixin(object):
 
     def user_url(self, obj):
         if obj.actor:
-            app_label, model = settings.AUTH_USER_MODEL.split('.')
-            viewname = 'admin:%s_%s_change' % (app_label, model.lower())
-            link = urlresolvers.reverse(viewname, args=[obj.actor.id])
-            return u'<a href="%s">%s</a>' % (link, obj.actor)
+            # if user does not have perms on users, could not reverse url
+            try:
+                app_label, model = settings.AUTH_USER_MODEL.split('.')
+                viewname = 'admin:%s_%s_change' % (app_label, model.lower())
+                link = urlresolvers.reverse(viewname, args=[obj.actor.id])
+                return u'<a href="%s">%s</a>' % (link, obj.actor)
+            except:
+                return obj.actor
 
         return 'system'
     user_url.allow_tags = True
