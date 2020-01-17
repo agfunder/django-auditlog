@@ -97,14 +97,16 @@ class LogEntryAdminMixin(object):
                 val = changes[key]
 
                 if type(val[0]) is list:
-                    str_0=cgi.escape( "\n".join(val[0]) )
+                    str_0=cgi.escape( "\n".join(val[0]) ).replace("{","(").replace("}",")")
                 else:
-                    str_0=cgi.escape(val[0])
+                    str_0=cgi.escape(val[0]).replace("{","(").replace("}",")")
 
                 if type(val[1]) is list:
-                    str_1=cgi.escape( "\n".join(val[1]) )
+                    str_1=cgi.escape( "\n".join(val[1]) ).replace("{","(").replace("}",")")
+
                 else:
-                    str_1=cgi.escape(val[1])
+                    str_1=cgi.escape(val[1]).replace("{","(").replace("}",")")
+
 
                 MAX_LIST_STR_LEN=250
                 s += format_html(html % (key ,  chop(str_0,MAX_LIST_STR_LEN).replace("\n","<br>"),  chop(str_1,MAX_LIST_STR_LEN).replace("\n","<br>") ) )
